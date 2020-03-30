@@ -10,7 +10,7 @@ To run an experiment, run according to the following examples:
 
 IPS estimator on the open datasetm with proximal point method with kappa value, soft clipping and clipping M value
 ```
-python main.py --estimator ips --dataset open --proximal --kappa 0.001 --clipping soft --M 100
+python main.py --estimator ips --dataset open --proximal --kappa 0.001 --clip soft --M 100
 ```
 
 Selfnormalized estimator on the Noisymoons dataset with contextual modelling linear and normal distribution for the learned PDF
