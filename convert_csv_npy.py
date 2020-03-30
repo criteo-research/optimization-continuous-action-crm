@@ -10,4 +10,5 @@ output_path = sys.argv[2]
 df = pd.read_csv(full_dataset_path) 
 print('Csv file loaded!') 
 array = df.values.astype(np.float64) 
-np.save(output_path, array) print('Data saved!')
+np.save(output_path, array)
+print('Data saved!')
