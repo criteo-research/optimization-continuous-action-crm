@@ -23,26 +23,31 @@ This code includes synthetic datasets as well as a real-life, large-scale datase
 
 ## Experiments
 
-To run an experiment, run according to the following examples:
+To run an experiment, run according to the following examples. You can also look at the file `main.py` for detailed commands.
+
+### Synthetic Datasets
+Selfnormalized estimator on the Noisymoons dataset with contextual modelling linear and normal distribution for the learned PDF
+```
+python main.py --estimator selfnormalized --dataset noisymoons --contextual_modelling linear --learning_distribution normal
+```
+
+CLP estimator on the anisotropic dataset with variance penalty, gamma value and penalties on the norm of the IPS parameter
+```
+python main.py --estimator clp --dataset anisotropic --contextual_modelling clp --gamma 100 --reg_param 10
+```
+
+
+### Criteo Continuous Offline Dataset
 
 IPS estimator on the open datasetm with proximal point method with kappa value, soft clipping and clipping M value
 ```
 python main.py --estimator ips --dataset open --proximal --kappa 0.001 --clip soft --M 100
 ```
 
-Selfnormalized estimator on the Noisymoons dataset with contextual modelling linear and normal distribution for the learned PDF
-```
-python main.py --estimator selfnormalized --dataset noisymoons --contextual_modelling linear --learning_distribution normal
-```
 
-CLP estimator on the anisotropic dataset with variance penalty, gamma value and penalties on the norm of the IPS parameter 
-```
-python main.py --estimator clp --dataset anisotropic --contextual_modelling clp --gamma 100 --reg_param 10
-```
+### Sanity Checks
 
-See the file main.py for detailed commands.
-
-## To check that you have the same setup as us, run the following paired example and verify results:
+To check that you have the same setup as us, run the following paired example and verify results:
 
 ```
 python main.py --estimator ips --dataset open --var_lambda 0.0 --reg_entropy 0.0001 --clip soft --M 10 --contextual_modelling strat --nb_rd 1 
