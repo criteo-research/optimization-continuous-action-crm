@@ -47,7 +47,29 @@ python main.py --estimator ips --dataset open --proximal --kappa 0.001 --clip so
 
 ### Sanity Checks
 
-To check that you have the same setup as us, run the following paired example and verify results:
+#### Synthetic dataset
+
+To check that you have the same setup as us, run the following paired example and verify results on a synthetic dataset:
+
+```
+python main.py --estimator selfnormalized --dataset noisycircles --var_lambda 0.1 --reg_entropy 0.0001 --contextual_modelling kern-poly2 --nb_rd 1
+```
+You should see the result in txt file:
+```
+bootstrap_h_ips_test:0.5591555398423407|bootstrap_h_ips_valid:0.12503530913739397|bootstrap_h_snips_test:0.078604862769276|bootstrap_h_snips_valid:0.12692125236206286|em_diagnostic_test:2.256203528104498|em_diagnostic_valid:0.3610341103989956|ess_diagnostic_test:0.0004889707635067942|ess_diagnostic_valid:0.0001644024987240737|ips_test:-1.2598683463459917|ips_valid:-0.1314177178172699|snips_test:-0.5577064238301641|snips_valid:-0.43333562660798264|std_h_test:99.59228336700215|std_h_valid:27.56747565157582|t_h_test:1.155835068543718|t_h_valid:0.30464179059068014|test_policy_std:4.2741911926731926e-05|test_reward:0.6005687662484943|test_test_context_std:4.394506103180005e-07|valid_policy_std:4.286021927941692e-05|valid_reward:0.6000213021197933|valid_test_context_std:3.7024934048650937e-07
+```
+
+```
+python main.py --estimator selfnormalized --dataset noisycircles --var_lambda 0.1 --reg_entropy 0.0001 --contextual_modelling kern-poly2 --nb_rd 1 --proximal --kappa 0.1
+```
+You should see the result in txt file:
+```
+bootstrap_h_ips_test:0.7880889894924185|bootstrap_h_ips_valid:0.6401819625960339|bootstrap_h_snips_test:0.09485290624006576|bootstrap_h_snips_valid:0.08442520732469028|em_diagnostic_test:1.3670278866066194|em_diagnostic_valid:2.5076555401253433|ess_diagnostic_test:0.00024129358726949956|ess_diagnostic_valid:0.0003895512213533832|ips_test:-1.1083350877649485|ips_valid:-1.2498919714121797|snips_test:-0.7999308903772422|snips_valid:-0.5051460411109807|std_h_test:83.3809676223928|std_h_valid:122.49863522959008|t_h_test:0.9478270128489855|t_h_valid:1.3562256165938131|test_policy_std:4.3379780649088184e-05|test_reward:0.6156644902498727|test_test_context_std:4.3046225811738055e-07|valid_policy_std:4.346545737493252e-05|valid_reward:0.6179033871580074|valid_test_context_std:3.7837349603543975e-07
+```
+
+#### Open dataset
+
+To check that you have the same setup as us, run the following paired example and verify results on the open dataset:
 
 ```
 python main.py --estimator ips --dataset open --var_lambda 0.0 --reg_entropy 0.0001 --clip soft --M 10 --contextual_modelling strat --nb_rd 1 
