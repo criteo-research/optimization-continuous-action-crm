@@ -1,12 +1,29 @@
-Add the open-data npy file in the data folder
+# Optimization of Continuous Action Policies with Counterfactual Risk Minimization
 
-## To install the needed libraries, run
+This code reproduces the experiments of the paper "Optimization Approaches for counterfactual risk minimization with continuous actions". Please cite it using the following bibtex snippet:
 
+{TBA}
+
+We believe it is also generally useful to experiment and benchmark counterfactual learning of continuous, contextual policies.
+
+## Setup
+
+This code uses the [Cyanure optimization toolkit](http://thoth.inrialpes.fr/people/mairal/cyanure/welcome.html). It is recommended to first install the MKL library through `conda` before proceeding to installing other requirements. 
+```
+conda install mkl
+``` 
+And then
 ```
 pip install -r requirements.txt
 ```
 
-## To run an experiment, run according to the following examples:
+## Datasets
+
+This code includes synthetic datasets as well as a real-life, large-scale dataset donated by [Criteo AI Lab](https://ailab.criteo.com/). The latter is free to use for research purposes and will be downloaded automatically the first time it is used in the code.
+
+## Experiments
+
+To run an experiment, run according to the following examples:
 
 IPS estimator on the open datasetm with proximal point method with kappa value, soft clipping and clipping M value
 ```
