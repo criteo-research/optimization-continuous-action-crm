@@ -1,17 +1,17 @@
 # Optimization of Continuous Action Policies with Counterfactual Risk Minimization
 
-This code reproduces the experiments of the paper "Optimization Approaches for counterfactual risk minimization with continuous actions". Please cite it using the following bibtex snippet:
+This code reproduces the experiments of the paper "Optimization Approaches for counter-factual risk minimization with continuous actions". Please cite it using the following Bibtex snippet:
 
 {TBA}
 
-We believe it is also generally useful to experiment and benchmark counterfactual learning of continuous, contextual policies.
+We believe it is also generally useful to experiment and benchmark off-policy (counter-factual) learning of continuous, contextual policies.
 
 ## Setup
 
 This code uses the [Cyanure optimization toolkit](http://thoth.inrialpes.fr/people/mairal/cyanure/welcome.html). It is recommended to first install the MKL library through `conda` before proceeding to installing other requirements. 
 ```
 conda install mkl
-``` 
+```
 And then
 ```
 pip install -r requirements.txt
@@ -20,6 +20,8 @@ pip install -r requirements.txt
 ## Datasets
 
 This code includes synthetic datasets as well as a real-life, large-scale dataset donated by [Criteo AI Lab](https://ailab.criteo.com/). The latter is free to use for research purposes and will be downloaded automatically the first time it is used in the code.
+
+{Url of Dataset Documentation}
 
 ## Experiments
 
@@ -61,7 +63,7 @@ $ python main.py --estimator selfnormalized --dataset noisycircles --var_lambda 
 test reward 0.615664 policy std 0.000043 context std 0.000000
 ```
 
-#### Open dataset
+#### Criteo dataset
 
 To check that you have the same setup as us, run the following paired example and verify results on the open dataset:
 
