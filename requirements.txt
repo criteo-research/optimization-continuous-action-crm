@@ -4,3 +4,5 @@ cyanure-mkl
 scikit-learn
 pandas
 urllib
+scipy
+logging-python
