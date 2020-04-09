@@ -1,5 +1,8 @@
 # Libraries
 import os
+import os.path
+import urllib.request
+import pandas as pd 
 import autograd.numpy as np
 from abc import ABCMeta, abstractmethod
 from sklearn.model_selection import train_test_split
@@ -7,7 +10,7 @@ from sklearn import datasets
 from sklearn.preprocessing import MinMaxScaler
 
 dataset_dico = {
-    'open': 'OpenDataset',
+    'criteo': 'CriteoDataset',
     'noisycircles': 'Synthetic',
     'noisymoons': 'Synthetic',
     'anisotropic': 'Synthetic',
@@ -87,10 +90,16 @@ class Dataset:
         """
         pass
 
-class OpenDataset(Dataset):
-    """ Open Data
+class CriteoDataset(Dataset):
+    """ Criteo Off Policy Continuous Action Dataset
     
     """
+    
+    CRITEO_DATASET_URI = 'https://criteostorage.blob.core.windows.net/criteo-research-datasets/criteo-continuous-offline-dataset.csv.gz'
+    CRITEO_DATASET_FILENAME = 'criteo-continuous-offline-dataset.csv.gz'
+    
+    file_name = 'criteo_dataset.npy'
+    
     def __init__(self, name, path='data/', **kw):
         """Initializes the class
         
@@ -102,17 +111,32 @@ class OpenDataset(Dataset):
         Note:
             Other attributed inherited from Dataset class
         """
-        super(OpenDataset, self).__init__(**kw)
+        super(CriteoDataset, self).__init__(**kw)
         self.path = path
-        self.file_name = "open_data.npy"
+        self.file_path = os.path.join(self.path, self.file_name)
         self.name = name
         self._load_and_setup_data()
 
+    def _download_criteo_open_dataset(self):
+        local_csv = os.path.join(self.path, self.CRITEO_DATASET_FILENAME)
+        if not os.path.exists(local_csv):
+            print("downloading Criteo dataset (~2.3GB) to", local_csv, "...")
+            urllib.request.urlretrieve(self.CRITEO_DATASET_URI,  local_csv)
+        if not os.path.exists(self.file_path):
+            print("converting Criteo dataset to numpy format...")        
+            df = pd.read_csv(local_csv)
+            array = df.values.astype(np.float64) 
+            np.save(self.file_path, array)
+            print("conversion done")
+        
     def _load_and_setup_data(self):
         """ Load data from csv file
         """
-        file_path = os.path.join(self.path, self.file_name)
-        data = np.load(file_path)
+        if not os.path.exists(self.file_path):
+            self._download_criteo_open_dataset()
+        
+        data = np.load(self.file_path)
+        
         features = data[:,:3]
         actions = data[:, 3]
         rewards = data[:, 4]

@@ -9,7 +9,6 @@ logger = get_logger()
 TOL = 1e-5
 MAX_ITER_PROX = 50
 
-
 def process_experiment(args, random_seed):
 
     # Data, modelling and hyperparameters setup
@@ -57,8 +56,10 @@ def process_experiment(args, random_seed):
 
     return '{} {}\n'.format(task_name, metrics_information)
 
-def run(args):
 
+
+def run(args):
+    
     has_effect = False
 
     if args:
@@ -84,9 +85,12 @@ def run(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run scripts for the evaluation of methods')
-    parser.add_argument('--estimator', nargs="?",  default='ips',  choices=['ips', 'selfnormalized', 'direct', 'doublyrobust', 'directstochastic', 'clp', 'stochasticdirect', 'snclp'],
+    parser.add_argument('--estimator', nargs="?",  default='ips',  
+                        choices=['ips', 'selfnormalized', 'direct', 'doublyrobust', 'directstochastic', 'clp',
+                                 'stochasticdirect', 'snclp'],
                         help='estimator name')
-    parser.add_argument('--dataset', nargs="?", default='open',  choices=['open', 'noisycircles', 'noisymoons', 'anisotropic', 'smallopen_sparse', 'smallopen_non_sparse'],
+    parser.add_argument('--dataset', nargs="?", default='noisymoons',  
+                        choices=['criteo', 'noisycircles', 'noisymoons', 'anisotropic', 'smallopen_sparse', 'smallopen_non_sparse'],
                         help='dataset')
     parser.add_argument('--method', nargs="?", default='L-BFGS',  choices=['Newton', 'L-BFGS'],
                         help='optimisation method')
@@ -96,8 +100,8 @@ if __name__ == "__main__":
     parser.add_argument('--M', nargs="?", type=str, default='None', help='clipping term')
     parser.add_argument('--proximal', action='store_true', help='use proximal method')
     parser.add_argument('--kappa', nargs="?", type=float, default=0., help='kappa for proximal point method')
-    parser.add_argument('--contextual_modelling', nargs="?", default='linear',  choices=['unique', 'strat', 'linear',
-                                                                                    'kern-poly2', 'kern-lin-poly2', 'clp'],
+    parser.add_argument('--contextual_modelling', nargs="?", default='linear',  
+                        choices=['unique', 'strat', 'linear', 'kern-poly2', 'kern-lin-poly2', 'clp'],
                         help='how to learn parameter alpha')
     parser.add_argument('--nb_rd', nargs="?", type=int, default=5, help='number of random seeds')
     parser.add_argument('--nb_quantile', nargs="?", type=int, default=4, help='number of quantiles for stratification')
