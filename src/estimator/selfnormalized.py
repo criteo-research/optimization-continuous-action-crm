@@ -6,6 +6,7 @@ base_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../..")
 sys.path.append(base_dir)
 
 from src.estimator.base import CRMEstimator
+EPS = 1e-8
 
 class SelfNormalizedEstimator(CRMEstimator):
     """ Self Normalized Estimator, see Equation (6)
@@ -27,7 +28,7 @@ class SelfNormalizedEstimator(CRMEstimator):
         """
         # impt_smplg_weight = self._get_importance_sampling_weight(parameter, features, actions, pi_logging)
         u_i = - rewards * self.impt_smplg_weight
-        return np.sum(u_i)/np.sum(self.impt_smplg_weight)
+        return np.sum(u_i)/(np.sum(self.impt_smplg_weight)+EPS)
 
     def _std_penalty(self, parameter, features, actions, rewards, pi_logging):
         """ See docstring in the parent class
@@ -35,4 +36,4 @@ class SelfNormalizedEstimator(CRMEstimator):
         u_i = (-rewards - self.risk(parameter, features, actions, rewards, pi_logging))**2 * self.impt_smplg_weight**2
         u = np.sum(u_i, axis=0)
         v = np.sum(self.impt_smplg_weight, axis=0)**2
-        return u/v
+        return u/(v+EPS)

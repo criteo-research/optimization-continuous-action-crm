@@ -90,7 +90,7 @@ if __name__ == "__main__":
                                  'stochasticdirect', 'snclp'],
                         help='estimator name')
     parser.add_argument('--dataset', nargs="?", default='noisymoons',  
-                        choices=['criteo', 'noisycircles', 'noisymoons', 'anisotropic', 'smallopen_sparse', 'smallopen_non_sparse'],
+                        choices=['criteo', 'noisycircles', 'noisymoons', 'anisotropic', 'criteo-small'],
                         help='dataset')
     parser.add_argument('--method', nargs="?", default='L-BFGS',  choices=['Newton', 'L-BFGS'],
                         help='optimisation method')

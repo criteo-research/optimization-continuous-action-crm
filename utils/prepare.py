@@ -2,7 +2,8 @@ import autograd.numpy as np
 import logging
 
 dimension_datasets = {
-    'open': 3,
+    'criteo': 3,
+    'criteo-small': 3,
     'noisycircles': 2,
     'noisymoons': 2,
     'anisotropic': 2,

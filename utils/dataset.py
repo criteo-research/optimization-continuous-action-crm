@@ -11,6 +11,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 dataset_dico = {
     'criteo': 'CriteoDataset',
+    'criteo-small': 'CriteoDataset',
     'noisycircles': 'Synthetic',
     'noisymoons': 'Synthetic',
     'anisotropic': 'Synthetic',
@@ -136,6 +137,8 @@ class CriteoDataset(Dataset):
             self._download_criteo_open_dataset()
         
         data = np.load(self.file_path)
+        if self.name.endswith('small'):
+            data = data[:1e6]
         
         features = data[:,:3]
         actions = data[:, 3]

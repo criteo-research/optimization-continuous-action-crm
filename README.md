@@ -54,13 +54,13 @@ python main.py --estimator ips --dataset open --proximal --kappa 0.001 --clip so
 To check that you have the same setup as us, run the following examples and verify results on synthetic dataset:
 
 ```
-$ python main.py --estimator selfnormalized --dataset noisycircles --var_lambda 0.1 --reg_entropy 0.0001 --contextual_modelling kern-poly2 --nb_rd 1 --proximal --kappa 0.1 |grep 'test reward'
-test reward 0.615664 policy std 0.000043 context std 0.000000
+$ python main.py --estimator selfnormalized --dataset noisycircles --var_lambda 1 --reg_entropy 0.0001 --contextual_modelling kern-poly2 --nb_rd 1 --proximal --kappa 0.1 --max_iter 10|grep 'test reward'
+test reward 0.616224 policy std 0.000043 context std 0.000000
 ```
 
 ```
-$ python main.py --estimator selfnormalized --dataset noisycircles --var_lambda 0.1 --reg_entropy 0.0001 --contextual_modelling kern-poly2 --nb_rd 1 |grep 'test reward'
-test reward 0.615664 policy std 0.000043 context std 0.000000
+$ python main.py --estimator selfnormalized --dataset noisycircles --var_lambda 1 --reg_entropy 0.0001 --contextual_modelling kern-poly2 --nb_rd 1|grep 'test reward'
+test reward 0.613755 policy std 0.000044 context std 0.000000
 ```
 
 #### Criteo dataset
