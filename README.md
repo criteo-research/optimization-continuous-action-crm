@@ -68,7 +68,7 @@ test reward 0.613755 policy std 0.000044 context std 0.000000
 To check that you have the same setup as us, run the following paired example and verify results on the open dataset:
 
 ```
-$ python main.py --estimator ips --dataset open --var_lambda 0.0 --reg_entropy 0.0001 --clip soft --M 10 --contextual_modelling strat --nb_rd 1 
+$ python main.py --estimator ips --dataset criteo-small --var_lambda 0.001 --reg_entropy 0.00 --clip soft --M 10 --contextual_modelling strat --nb_rd 1
 ```
 
 Note: this will take some time. 
@@ -76,6 +76,6 @@ Note: this will take some time.
 You should see now in the result file:
 ```
 $ cat results/L-BFGS/nonproximal/ips/soft/strat/metrics.txt |sed 's/|/\n/g' |grep 'snips_test'
-snips_test:-10.183163677795509
+snips_test:-11.279917272089614
 ```
 
