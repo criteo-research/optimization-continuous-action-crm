@@ -6,7 +6,7 @@ base_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../..")
 sys.path.append(base_dir)
 
 from src.estimator.base import CRMEstimator
-EPS = 1e-8
+EPS = 1e-7
 
 class SelfNormalizedEstimator(CRMEstimator):
     """ Self Normalized Estimator, see Equation (6)

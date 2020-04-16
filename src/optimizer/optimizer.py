@@ -7,6 +7,8 @@ import autograd.numpy as np
 
 base_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../..")
 sys.path.append(base_dir)
+EPS = 1e-7
+
 
 class Optimizer:
     """ Optimizer class for monitoring the training and experimenting differents methods
@@ -41,12 +43,8 @@ class Optimizer:
             (tuple): optimized parameter, value of the function at this point, dictionary of information
         """
         if self.hyperparams['method'] == 'L-BFGS':
-            eps = 1e-8
             # bounds on all params
-            bnds = [(eps, None) for _ in parameter]
-            # For bounds only on the variance:
-            # bnds = [(None, None) for _ in parameter]
-            # bnds[-1] = (eps, None)
+            bnds = [(EPS, None) for _ in parameter]
             optimized = sp.optimize.minimize(func, parameter, args, method='L-BFGS-B', jac=grad_func, callback=callback, bounds=bnds)
             d = {'warnflag': not optimized.success,
              'grad': optimized.jac,

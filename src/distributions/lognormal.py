@@ -10,6 +10,8 @@ sys.path.append(base_dir)
 from src.distributions.base import Distribution
 from utils.stratificator import Stratificator
 
+EPS = 1e-7
+
 class LogNormalDistribution(Distribution):
     """ Log Normal Distribution utilities
 
@@ -38,12 +40,12 @@ class LogNormalDistribution(Distribution):
             x (np.array): actions taken to evaluate the pdf on
 
         """
-        return np.exp(-(np.log(x) - self.mu) ** 2 / (2 * self.sigma ** 2)) / (x * self.sigma * np.sqrt(2 * np.pi))
+        return np.exp(-(np.log(x) - self.mu) ** 2 / (2 * self.sigma ** 2 + EPS)) / (x * self.sigma * np.sqrt(2 * np.pi) + EPS)
 
     def entropy(self):
         """ Returns entropy of the distribution
         """
-        return np.mean(np.log(self.sigma*np.exp(self.mu+1/2)*np.sqrt(2*np.pi)))
+        return np.mean(np.log(self.sigma*np.exp(self.mu+1/2)*np.sqrt(2*np.pi)+EPS))
 
     def get_samples(self, parameter, features, random_seed=42):
         """ Samples from the distribution
