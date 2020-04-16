@@ -10,11 +10,11 @@ We believe it is also generally useful to experiment and benchmark off-policy (c
 
 This code uses the [Cyanure optimization toolkit](http://thoth.inrialpes.fr/people/mairal/cyanure/welcome.html). It is recommended to first install the MKL library through `conda` before proceeding to installing other requirements. 
 ```
-conda install mkl
+$ conda install mkl numpy
 ```
 And then
 ```
-pip install -r requirements.txt
+$ pip install -r requirements.txt
 ```
 
 ## Datasets
