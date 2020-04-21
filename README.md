@@ -21,7 +21,7 @@ $ pip install -r requirements.txt
 
 This code includes synthetic datasets as well as a real-life, large-scale dataset donated by [Criteo AI Lab](https://ailab.criteo.com/). The latter is free to use for research purposes and will be downloaded automatically the first time it is used in the code.
 
-{Url of Dataset Documentation}
+Details on the dataset can be found in the paper. You can also download it directly from [here](https://criteostorage.blob.core.windows.net/criteo-research-datasets/criteo-continuous-offline-dataset.csv.gz) (2.3GB zipped CSV). 
 
 ## Experiments
 
