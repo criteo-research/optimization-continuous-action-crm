@@ -2,7 +2,16 @@
 
 This code reproduces the experiments of the paper "Optimization Approaches for counter-factual risk minimization with continuous actions". Please cite it using the following Bibtex snippet:
 
-{TBA}
+```
+@misc{zenati2020optimization,
+    title={Optimization Approaches for Counterfactual Risk Minimization with Continuous Actions},
+    author={Houssam Zenati and Alberto Bietti and Matthieu Martin and Eustache Diemert and Julien Mairal},
+    year={2020},
+    eprint={2004.11722},
+    archivePrefix={arXiv},
+    primaryClass={stat.ML}
+}
+```
 
 We believe it is also generally useful to experiment and benchmark off-policy (counter-factual) learning of continuous, contextual policies.
 
