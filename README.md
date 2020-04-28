@@ -1,6 +1,6 @@
 # Optimization of Continuous Action Policies with Counterfactual Risk Minimization
 
-This code reproduces the experiments of the paper [https://arxiv.org/abs/2004.11722](Optimization Approaches for counter-factual risk minimization with continuous actions). Please cite it using the following Bibtex snippet:
+This code reproduces the experiments of the paper [Optimization Approaches for counter-factual risk minimization with continuous actions](https://arxiv.org/abs/2004.11722). Please cite it using the following Bibtex snippet:
 
 ```
 @misc{zenati2020optimization,
