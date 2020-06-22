@@ -3,35 +3,32 @@ import sys
 import scipy as sp
 import autograd.numpy as np
 
-import os
-import sys
-import scipy as sp
-import autograd.numpy as np
-
 base_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../..")
 sys.path.append(base_dir)
 
 from src.estimator.base import CRMEstimator
 
-from src.estimator.direct import DirectEstimator
+from src.estimator.dm import DirectMethod
 from utils.prepare import get_distribution_by_params
 
 
-class StochasticDirect(DirectEstimator, CRMEstimator):
-    def __init__(self, hyperparams, verbose, init_parameter):
+class StochasticDirect(DirectMethod, CRMEstimator):
+    def __init__(self, hyperparams, verbose, contextual_modelling):
         """Initializes the class
 
         Attributes:
-            init_coeff (np.array): initial parameter parameter
+            name (str): name of the estimator
             hyperparams (dict): dictionnary parameters
+            distribution (distribution): see distribution class
+            sigma (float): noise level of the SDM
 
         """
-        DirectEstimator.__init__(self, hyperparams=hyperparams, verbose=verbose)
-        CRMEstimator.__init__(self, hyperparams=hyperparams, verbose=verbose,
-                                                          init_parameter=init_parameter)
+        DirectMethod.__init__(self, hyperparams=hyperparams, verbose=verbose)
+        CRMEstimator.__init__(self, hyperparams=hyperparams, verbose=verbose, contextual_modelling=contextual_modelling)
         self.name = 'StochasticDirect'
         self.hyperparams['learning_distribution'] = 'normal'
-        self.distribution = get_distribution_by_params(self.hyperparams)
+        self.distribution = get_distribution_by_params(self.hyperparams, contextual_modelling)
+        self.sigma = 1e-8
 
     def pred_action(self, features):
         """ Predicts actions from features and the feature map for all possible action possible
@@ -40,13 +37,12 @@ class StochasticDirect(DirectEstimator, CRMEstimator):
             features (np.array): observation features
 
         """
-        self.sigma = np.diff(self.action_set[:-1]).min() / 2
-        repeated_features = np.repeat(features, len(self.action_set[:-1]), axis=0)
-        repeated_actions = np.tile(self.action_set[:-1], features.shape[0])
-        X = self.get_feature_map(repeated_features, repeated_actions)
+        repeated_features = np.repeat(features, len(self.action_anchors[:-1]), axis=0)
+        repeated_actions = np.tile(self.action_anchors[:-1], features.shape[0])
+        X = self.feature_map.joint_feature_map(repeated_features, repeated_actions)
         preds = self.reward_regressor.predict(X)
-        preds = preds.reshape((features.shape[0], len(self.action_set[:-1])))
-        return self.action_set[:-1][np.argmax(preds, axis=1)]
+        preds = preds.reshape((features.shape[0], len(self.action_anchors[:-1])))
+        return self.action_anchors[:-1][np.argmax(preds, axis=1)]
 
     def get_samples(self, features, random_seed):
         """ Samples action from the policy learned by the estimator
@@ -81,17 +77,19 @@ class StochasticDirect(DirectEstimator, CRMEstimator):
         pi_parameter = self.distribution.pdf(features, actions)
         self.impt_smplg_weight = pi_parameter/pi_logging
 
-    def evaluate(self, dataset, data_train, data_valid, data_test, n_samples):
+    def evaluate(self, dataset, data_valid, data_test, n_samples):
         """ Performs evaluation on dataset on train, valid and test split
 
         Args:
+            dataset (Dataset)
+            data_valid: validation set in dataset
+            data_test: test set in dataset
             n_samples (int): number of sample folds to perform bootstrap for offline evaluation on or actions to sample
                              for online evaluation
 
         """
         metrics = {}
-
-        # metrics = self.offline_evaluation(metrics, 'train', data_train, self.parameter)
+        metrics['fitted_objective'] = 0.
         metrics = self.offline_evaluation(metrics, 'valid', data_valid, self.parameter, bootstrap=True, n_bootstrap=n_samples)
         metrics = self.offline_evaluation(metrics, 'test', data_test, self.parameter, bootstrap=True, n_bootstrap=n_samples)
 
@@ -100,7 +98,7 @@ class StochasticDirect(DirectEstimator, CRMEstimator):
             print("IPS Confidence T h on set: {}".format(metrics['t_h_test']))
             print("IPS Confidence Std h on set: {}".format(metrics['std_h_test']))
             print("Test SNIPS: \n {}".format(metrics['snips_test']))
-            print("SNIPS Confidence Bootstrap h on set: {}".format(metrics['bootstrap_h_snips_test']))
+            print("SNIPS Confidence Bootstrap h on set: {}".format(metrics['bootstrap_std_snips_test']))
             print('Logging policy baseline: {:2f}'.format(dataset.get_baseline_risk('test')))
             print("Emp. Mean diagnostic on val set: {}".format(metrics['em_diagnostic_test']))
             print("ESS diagnostic on val set: {}".format(metrics['ess_diagnostic_test']))
@@ -110,4 +108,3 @@ class StochasticDirect(DirectEstimator, CRMEstimator):
             metrics = dataset.evaluation_online(metrics, 'test', self, n_samples)
 
         return metrics
-

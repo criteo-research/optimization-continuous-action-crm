@@ -1,8 +1,8 @@
 # Libraries
 import os
 import os.path
+import pandas as pd
 import urllib.request
-import pandas as pd 
 import autograd.numpy as np
 from abc import ABCMeta, abstractmethod
 from sklearn.model_selection import train_test_split
@@ -15,12 +15,15 @@ dataset_dico = {
     'noisycircles': 'Synthetic',
     'noisymoons': 'Synthetic',
     'anisotropic': 'Synthetic',
+    'gmm': 'Synthetic',
+    'varied': 'Synthetic',
     'toy-gmm': 'Synthetic',
+    'warfarin': 'WarfarinDataset',
 }
 
-def get_dataset_by_name(name, random_seed):
+def get_dataset_by_name(name, discrete=None):
     mod = __import__("utils.dataset", fromlist=[dataset_dico[name]])
-    return getattr(mod, dataset_dico[name])(name=name, random_seed=random_seed)
+    return getattr(mod, dataset_dico[name])(name=name, discrete=discrete)
 
 class Dataset:
     """Parent class for Data
@@ -28,7 +31,7 @@ class Dataset:
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, random_seed=42, train_size=2/3, val_size=0.5):
+    def __init__(self, discrete=None, train_size=2/3, val_size=0.5):
         """Initializes the class
         
         Attributes:
@@ -42,7 +45,7 @@ class Dataset:
         Note:
             Setup done in auxiliary private method
         """
-        self.random_seed = random_seed
+        self.discrete = discrete
         self.rng = np.random.RandomState(42)
         self.train_size = train_size
         self.val_size = val_size
@@ -65,6 +68,8 @@ class Dataset:
             sigma (np.array): parameter of log normal pdf
         """
         return np.exp(-(np.log(action) - mu) ** 2 / (2 * sigma ** 2)) / (action * sigma * np.sqrt(2 * np.pi))
+
+    # def discrete_logging_policy(action, mu, sigma):
 
     def get_logging_policy_reward_baseline(self, mode='valid'):
         """
@@ -91,24 +96,24 @@ class Dataset:
         """
         pass
 
+
 class CriteoDataset(Dataset):
     """ Criteo Off Policy Continuous Action Dataset
-    
+
     """
-    
+
     CRITEO_DATASET_URI = 'https://criteostorage.blob.core.windows.net/criteo-research-datasets/criteo-continuous-offline-dataset.csv.gz'
     CRITEO_DATASET_FILENAME = 'criteo-continuous-offline-dataset.csv.gz'
-    
+
     file_name = 'criteo_dataset.npy'
-    
+
     def __init__(self, name, path='data/', **kw):
         """Initializes the class
-        
+
         Attributes:
             name (str): name of the dataset
             path (str): path for loading the dataset
             file_name (str): name of the file to load
-
         Note:
             Other attributed inherited from Dataset class
         """
@@ -122,25 +127,26 @@ class CriteoDataset(Dataset):
         local_csv = os.path.join(self.path, self.CRITEO_DATASET_FILENAME)
         if not os.path.exists(local_csv):
             print("downloading Criteo dataset (~2.3GB) to", local_csv, "...")
-            urllib.request.urlretrieve(self.CRITEO_DATASET_URI,  local_csv)
+            urllib.request.urlretrieve(self.CRITEO_DATASET_URI, local_csv)
         if not os.path.exists(self.file_path):
-            print("converting Criteo dataset to numpy format...")        
+            print("converting Criteo dataset to numpy format...")
             df = pd.read_csv(local_csv)
-            array = df.values.astype(np.float64) 
+            array = df.values.astype(np.float64)
             np.save(self.file_path, array)
             print("conversion done")
-        
+
     def _load_and_setup_data(self):
         """ Load data from csv file
         """
         if not os.path.exists(self.file_path):
             self._download_criteo_open_dataset()
-        
+
         data = np.load(self.file_path)
+        # import pdb; pdb.set_trace()
         if self.name.endswith('small'):
-            data = data[:1e6]
-        
-        features = data[:,:3]
+            data = data[:int(1e6)]
+
+        features = data[:, :3]
         actions = data[:, 3]
         rewards = data[:, 4]
         pi_logging = data[:, 5]
@@ -155,7 +161,7 @@ class CriteoDataset(Dataset):
         r_train, self.reward_test = rewards[:size], rewards[size:]
         pi_0_train, self.pi_0_test = pi_logging[:size], pi_logging[size:]
 
-        size = int(a_train.shape[0] * 2/3)
+        size = int(a_train.shape[0] * 2 / 3)
         self.actions_train, self.actions_valid = a_train[:size], a_train[size:]
         self.features_train, self.features_valid = f_train[:size, :], f_train[size:, :]
         self.reward_train, self.reward_valid = r_train[:size], r_train[size:]
@@ -163,6 +169,56 @@ class CriteoDataset(Dataset):
 
         self.baseline_reward_valid = np.mean(self.reward_valid)
         self.baseline_reward_test = np.mean(self.reward_test)
+
+# class OpenDataset(Dataset):
+#     """ Open Data
+#
+#     """
+#     def __init__(self, name, path='data/', **kw):
+#         """Initializes the class
+#
+#         Attributes:
+#             name (str): name of the dataset
+#             path (str): path for loading the dataset
+#             file_name (str): name of the file to load
+#
+#         Note:
+#             Other attributed inherited from Dataset class
+#         """
+#         super(OpenDataset, self).__init__(**kw)
+#         self.path = path
+#         self.file_name = "open_data.npy"
+#         self.name = name
+#         self._load_and_setup_data()
+#
+#     def _load_and_setup_data(self):
+#         """ Load data from csv file
+#         """
+#         file_path = os.path.join(self.path, self.file_name)
+#         data = np.load(file_path)
+#         features = data[:,:3]
+#         actions = data[:, 3]
+#         rewards = data[:, 4]
+#         pi_logging = data[:, 5]
+#
+#         rng = np.random.RandomState(42)
+#         idx = rng.permutation(features.shape[0])
+#         features, actions, rewards, pi_logging = features[idx], actions[idx], rewards[idx], pi_logging[idx]
+#
+#         size = int(features.shape[0] * 0.75)
+#         a_train, self.actions_test = actions[:size], actions[size:]
+#         f_train, self.features_test = features[:size, :], features[size:, :]
+#         r_train, self.reward_test = rewards[:size], rewards[size:]
+#         pi_0_train, self.pi_0_test = pi_logging[:size], pi_logging[size:]
+#
+#         size = int(a_train.shape[0] * 2/3)
+#         self.actions_train, self.actions_valid = a_train[:size], a_train[size:]
+#         self.features_train, self.features_valid = f_train[:size, :], f_train[size:, :]
+#         self.reward_train, self.reward_valid = r_train[:size], r_train[size:]
+#         self.pi_0_train, self.pi_0_valid = pi_0_train[:size], pi_0_train[size:]
+#
+#         self.baseline_reward_valid = np.mean(self.reward_valid)
+#         self.baseline_reward_test = np.mean(self.reward_test)
 
 
 class Synthetic(Dataset):
@@ -253,7 +309,18 @@ class Synthetic(Dataset):
         potentials = self._get_potentials(y)
         actions = self.rng.lognormal(mean=self.start_mu, sigma=self.start_sigma, size=potentials.shape[0])
         rewards = self.get_rewards_from_actions(potentials, actions)
-        pi_logging = Dataset.logging_policy(actions, self.start_mu, self.start_sigma)
+        if self.discrete:
+            from scipy.stats import lognorm
+            rv = lognorm(s=self.start_sigma, scale=np.exp(self.start_mu))
+            quantiles = np.quantile(actions, np.linspace(0, 1, self.discrete + 1))
+            action_anchors = np.pad(quantiles, 1, 'constant', constant_values=(1e-7, np.inf))
+            bins = action_anchors[:-1]
+            inds = np.digitize(actions, bins, right=True)
+            inds_1 = inds - 1
+            inds_1[inds_1 == -1] = 0
+            pi_logging = rv.cdf(bins[inds]) - rv.cdf(bins[inds_1])
+        else:
+            pi_logging = Dataset.logging_policy(actions, self.start_mu, self.start_sigma)
 
         # Test train split
         self.actions_train, self.actions_test, self.features_train, self.features_test, self.reward_train, \
@@ -289,7 +356,7 @@ class Synthetic(Dataset):
         var_context = np.var(np.mean(rewards_array, axis=1))
         return np.mean(rewards_array), np.sqrt(var_pi), np.sqrt(var_context)
 
-    def evaluation_online(self, metrics, mode, estimator, n_samples):
+    def evaluation_online(self, metrics, mode, estimator, n_samples, verbose=True):
         """ Performs online evaluation
 
         Args:
@@ -304,8 +371,111 @@ class Synthetic(Dataset):
         features = self.features_valid if mode == 'valid' else self.features_test
         potentials = self.potentials_valid if mode == 'valid' else self.potentials_test
         mean_reward, std_pi, std_context = self.get_global_reward(features, potentials, estimator, n_samples)
-        print("{} reward {:2f} policy std {:2f} context std {:2f}".format(mode, mean_reward, std_pi, std_context))
+        if verbose:
+            print("{} reward {:2f} policy std {:2f} context std {:2f}".format(mode, mean_reward, std_pi, std_context))
         metrics['{}_reward'.format(mode)] = mean_reward
         metrics['{}_policy_std'.format(mode)] = std_pi
         metrics['{}_test_context_std'.format(mode)] = std_context
+        return metrics
+
+class WarfarinDataset(Dataset):
+    """ Warfarin Data
+
+    """
+
+    def __init__(self, name, path='data/', **kw):
+        """Initializes the class
+
+        Attributes:
+            alpha (np.array): parameters of the log-normal distribution
+            sigma (float): variance parameter in log-normal distribution
+            outlier_ratio (float): outlier ratio
+
+        Note:
+            Other attributed inherited from SyntheticData class
+        """
+        super(WarfarinDataset, self).__init__(**kw)
+        self.path = path
+        self.file_name = "warfarin.npy"
+        self.name = name
+        self.features_length = 81
+        self._load_and_setup_data()
+        self.rng = np.random.RandomState(42)
+        self.evaluation_offline = False
+
+    def _load_and_setup_data(self):
+        """ Load data from csv file
+        """
+        file_path = os.path.join(self.path, self.file_name)
+        data = np.load(file_path)
+        features = data[:, :self.features_length]
+        actions = data[:, self.features_length]
+        rewards = data[:, self.features_length+1]
+        pi_logging = data[:, self.features_length+2]
+        potentials = data[:, self.features_length+3]
+
+        self.mu_dose = np.std(potentials)
+
+        idx = self.rng.permutation(features.shape[0])
+        features, actions, rewards, pi_logging, potentials = features[idx], actions[idx], rewards[idx], \
+                                                             pi_logging[idx], potentials[idx]
+
+        size = int(features.shape[0] * self.train_size)
+        a_train, self.actions_test = actions[:size], actions[size:]
+        f_train, self.features_test = features[:size, :], features[size:, :]
+        r_train, self.reward_test = rewards[:size], rewards[size:]
+        pi_0_train, self.pi_0_test = pi_logging[:size], pi_logging[size:]
+        potentials_train, self.potentials_test = potentials[:size], potentials[size:]
+
+        size = int(features.shape[0] * self.val_size)
+        self.actions_train, self.actions_valid = a_train[:size], a_train[size:]
+        self.features_train, self.features_valid = f_train[:size, :], f_train[size:, :]
+        self.reward_train, self.reward_valid = r_train[:size], r_train[size:]
+        self.pi_0_train, self.pi_0_valid = pi_0_train[:size], pi_0_train[size:]
+        self.potentials_train, self.potentials_valid = potentials_train[:size], potentials_train[size:]
+
+        self.baseline_reward_valid = np.mean(self.reward_valid)
+        self.baseline_reward_test = np.mean(self.reward_test)
+
+    def get_potentials_labels(self, mode):
+        if mode=='train':
+            return self.potentials_train, np.empty_like(self.potentials_train)
+        elif mode=='test':
+            return self.potentials_test, np.empty_like(self.potentials_test)
+        else:
+            return self.potentials_valid, np.empty_like(self.potentials_valid)
+
+    def get_rewards_from_actions(self, potentials, actions):
+        return - np.maximum(np.abs(potentials - actions) - 0.1*potentials, 0.)
+
+    def get_global_reward(self, features, potentials, estimator, n_samples=1, parameter=None):
+        rewards = []
+        for i in range(n_samples):
+            actions_samples = estimator.get_samples(features, i)
+            rewards += [self.get_rewards_from_actions(potentials, actions_samples)]
+        rewards_array = np.stack(rewards, axis=0)
+        var_pi = np.mean(np.var(rewards_array, axis=0))
+        var_context = np.var(np.mean(rewards_array, axis=1))
+        return np.mean(rewards_array), np.sqrt(var_pi), np.sqrt(var_context)
+
+    def evaluation_online(self, metrics, mode, estimator, n_samples, verbose=True):
+        """ Performs online evaluation
+
+        Args:
+            metrics (dic): metrics dictionnary to be filled
+            mode (str): train, valid or test split
+            estimator (estimator)
+            n_samples (int): number of actions sampled for online evaluation
+
+        Returns:
+            metrics (dic): contains results information on the data split
+        """
+        features = self.features_valid if mode == 'valid' else self.features_test
+        potentials = self.potentials_valid if mode == 'valid' else self.potentials_test
+        mean_reward, std_pi, std_context = self.get_global_reward(features, potentials, estimator, n_samples)
+        if verbose:
+            print("{} reward {:2f} policy std {:2f} context std {:2f}".format(mode, mean_reward, std_pi, std_context))
+        metrics['{}_reward'.format(mode)] = mean_reward
+        metrics['{}_policy_std'.format(mode)] = std_pi
+        metrics['{}_context_std'.format(mode)] = std_context
         return metrics

@@ -6,20 +6,21 @@ import scipy as sp
 import autograd.numpy as np
 from autograd import grad, jacobian, hessian
 from abc import ABCMeta, abstractmethod
+EPS = 1e-8
 
 base_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../..")
 sys.path.append(base_dir)
 
 from src.optimizer.optimizer import Optimizer
 from utils.prepare import get_distribution_by_params
-
+from src.estimator.dm import DirectMethod
 
 class CRMEstimator:
     """ General Abstract Counterfactual Estimator
 
     """
     __metaclass__ = ABCMeta
-    def __init__(self, hyperparams, verbose, init_parameter):
+    def __init__(self, hyperparams, verbose, contextual_modelling):
         """Initializes the class
 
         Attributes:
@@ -32,11 +33,14 @@ class CRMEstimator:
 
         """
         self.hyperparams = hyperparams
-        self.parameter = init_parameter
+        self.contextual_modelling = contextual_modelling
         self.logger = verbose
         self.optimizer = Optimizer(hyperparams)
-        self.distribution = get_distribution_by_params(hyperparams)
+        self.distribution = get_distribution_by_params(hyperparams, self.contextual_modelling)
         self.debug = False
+
+    def create_starting_parameter(self, dataset):
+        self.parameter = self.contextual_modelling.get_starting_parameter(dataset)
 
     def _set_importance_sampling_weight(self, parameter, features, actions, pi_logging, reinitialize=False):
         """ Gets importance sampling weights for off-policy evaluation
@@ -52,9 +56,10 @@ class CRMEstimator:
             Computed once and stored in memory for autograd efficiency
 
         """
-        self.distribution.update_parameter(parameter, features, reinitialize)
+        self.distribution.update_parameter(parameter, features, actions, reinitialize)
         pi_parameter = self.distribution.pdf(features, actions)
         self.impt_smplg_weight = pi_parameter/pi_logging
+        self.pi_logging = pi_logging
 
     @abstractmethod
     def risk(self, parameter, features, actions, rewards, pi_logging, training=False):
@@ -123,6 +128,7 @@ class CRMEstimator:
     def _gradient_objective(self, parameter, features, actions, rewards, pi_logging):
         """ Gradient of the objective function
         """
+        # import pdb; pdb.set_trace()
         return grad(self._objective)(parameter, features, actions, rewards, pi_logging)
 
     def _hessian_objective(self, parameter, features, actions, rewards, pi_logging):
@@ -158,7 +164,8 @@ class CRMEstimator:
         def callback(parameter):
 
             self.callback_step += 1
-            print('Iteration... {}'.format(self.callback_step))
+            if self.logger:
+                print('Iteration... {}'.format(self.callback_step))
             if self.debug:
                 self.monitoring['parameters'].append(parameter)
                 objective = self._objective(parameter, features, actions, rewards, pi_logging)
@@ -168,17 +175,28 @@ class CRMEstimator:
                                        args=(features, actions, rewards, pi_logging), callback=callback,
                                        hess=self._hessian_objective)
 
+    def _update_parameter_clp(self, data):
+        """ Update clp parameters when initializing with DM
+        """
+        assert self.hyperparams['contextual_modelling'] == 'clp'
+        direct_estimator = DirectMethod(hyperparams=self.hyperparams, verbose=self.logger)
+        direct_estimator.fit(data)
+        self.parameter[:-2], self.parameter[0] = direct_estimator.reward_regressor.get_weights()
+
     def fit(self, data):
         """ Learn parameters and fit the estimator to training data
 
         Args:
             data (tuple): tuple of np.arrays with features, actions, rewards
         """
+        if self.hyperparams['initialize_clp']:
+            self._update_parameter_clp(data)
+
         if self.logger:
             self.logger.info("Counterfactual Risk Minimization in progress...")
         optimized = self._optimize_on(data)
         x, f, d = optimized
-        self.fitting_risk = f
+        self.fitted_objective = f
         self.parameter = x 
         self.information = d
 
@@ -190,7 +208,7 @@ class CRMEstimator:
             else:
                 self.logger.info("Counterfactual optimization is done!")
                 print(optimized)
-                print("Risk on the training set: {}".format(self.fitting_risk))
+                print("Objective on the training set: {}".format(self.fitted_objective))
 
     def get_ips_and_snips_metrics(self, parameter, features, actions, rewards, pi_logging):
         """ Common metric to evaluate all estimators
@@ -205,7 +223,7 @@ class CRMEstimator:
         """
         self._set_importance_sampling_weight(parameter, features, actions, pi_logging, reinitialize=True)
         u_i = - rewards * self.impt_smplg_weight
-        return np.mean(u_i), np.sum(u_i)/np.sum(self.impt_smplg_weight)
+        return np.mean(u_i), np.sum(u_i)/(np.sum(self.impt_smplg_weight)+EPS)
 
     def offline_evaluation(self, metrics, mode, data, parameter, confidence=0.95, bootstrap=False, n_bootstrap=1):
         """ Performs offline evaluation
@@ -230,6 +248,7 @@ class CRMEstimator:
         rng_bootstrap = np.random.RandomState(1)
         bootstrap_ips_metric = []
         bootstrap_snips_metric = []
+        bootstrap_delta_snips_metric = []
         bootstrap_t_h = []
         bootstrap_std_h = []
         bootstrap_em_diagnostic = []
@@ -239,9 +258,10 @@ class CRMEstimator:
             idx = rng_bootstrap.choice(np.arange(features.shape[0]), size=features.shape[0], replace=bootstrap)
             ips_metric, snips_metric = self.get_ips_and_snips_metrics(parameter, features[idx], actions[idx],
                                                                       rewards[idx], pi_logging[idx])
-
+            loss_logging = np.mean(-rewards[idx])
             bootstrap_ips_metric.append(ips_metric)
             bootstrap_snips_metric.append(snips_metric)
+            bootstrap_delta_snips_metric.append(snips_metric - loss_logging)
 
             # Student-t distribution test
             n = self.impt_smplg_weight.shape[0]
@@ -255,7 +275,7 @@ class CRMEstimator:
 
             # Diagnostics
             empirical_mean_diagnostic = np.mean(self.impt_smplg_weight)
-            effective_sample_size_diagnostic = (np.sum(self.impt_smplg_weight)**2/np.sum(self.impt_smplg_weight**2))/n
+            effective_sample_size_diagnostic = (np.sum(self.impt_smplg_weight)**2/(np.sum(self.impt_smplg_weight**2)+EPS))/n
 
             bootstrap_em_diagnostic.append(empirical_mean_diagnostic)
             bootstrap_ess_diagnostic.append(effective_sample_size_diagnostic)
@@ -264,25 +284,38 @@ class CRMEstimator:
         metrics['snips_{}'.format(mode)] = np.mean(bootstrap_snips_metric)
         metrics['t_h_{}'.format(mode)] = np.mean(bootstrap_t_h)
         metrics['std_h_{}'.format(mode)] = np.mean(bootstrap_std_h)
-        metrics['bootstrap_h_ips_{}'.format(mode)] = np.std(bootstrap_ips_metric)
-        metrics['bootstrap_h_snips_{}'.format(mode)] = np.std(bootstrap_snips_metric)
+        metrics['bootstrap_std_ips_{}'.format(mode)] = np.std(bootstrap_ips_metric)
+        metrics['bootstrap_h25_ips_{}'.format(mode)] = np.percentile(bootstrap_ips_metric, 2.5)
+        metrics['bootstrap_h975_ips_{}'.format(mode)] = np.percentile(bootstrap_ips_metric, 97.5)
+        metrics['bootstrap_std_snips_{}'.format(mode)] = np.std(bootstrap_snips_metric)
+        metrics['bootstrap_h25_snips_{}'.format(mode)] = np.percentile(bootstrap_snips_metric, 2.5)
+        metrics['bootstrap_h975_snips_{}'.format(mode)] = np.percentile(bootstrap_snips_metric, 97.5)
         metrics['em_diagnostic_{}'.format(mode)] = np.mean(bootstrap_em_diagnostic)
         metrics['ess_diagnostic_{}'.format(mode)] = np.mean(bootstrap_ess_diagnostic)
 
+        metrics['snips_delta_{}'.format(mode)] = np.mean(bootstrap_delta_snips_metric)
+
+        metrics['bootstrap_delta_std_snips_{}'.format(mode)] = np.std(bootstrap_delta_snips_metric)
+        metrics['bootstrap_delta_h25_snips_{}'.format(mode)] = np.percentile(bootstrap_delta_snips_metric, 2.5)
+        metrics['bootstrap_delta_h975_snips_{}'.format(mode)] = np.percentile(bootstrap_delta_snips_metric, 97.5)
+
+
         return metrics
 
-    def evaluate(self, dataset, data_train, data_valid, data_test, n_samples):
+    def evaluate(self, dataset, data_valid, data_test, n_samples):
         """ Performs evaluation on dataset on train, valid and test split
 
         Args:
+            dataset (Dataset)
+            data_valid: validation set in dataset
+            data_test: test set in dataset
             n_samples (int): number of sample folds to perform bootstrap for offline evaluation on or actions to sample
                              for online evaluation
 
         """
         metrics = {}
-
-        metrics = self.offline_evaluation(metrics, 'train', data_train, self.parameter)
-        metrics = self.offline_evaluation(metrics, 'valid', data_valid, self.parameter)
+        metrics['fitted_objective'] = self.fitted_objective
+        metrics = self.offline_evaluation(metrics, 'valid', data_valid, self.parameter, bootstrap=True, n_bootstrap=n_samples)
         metrics = self.offline_evaluation(metrics, 'test', data_test, self.parameter, bootstrap=True, n_bootstrap=n_samples)
 
         if self.logger:
@@ -290,8 +323,8 @@ class CRMEstimator:
             print("IPS Confidence T h on set: {}".format(metrics['t_h_test']))
             print("IPS Confidence Std h on set: {}".format(metrics['std_h_test']))
             print("Test SNIPS: \n {}".format(metrics['snips_test']))
-            print("SNIPS Confidence Bootstrap h on set: {}".format(metrics['bootstrap_h_snips_test']))
-            print('Logging policy baseline: {:2f}'.format(dataset.get_baseline_risk('test')))
+            print("SNIPS Confidence Bootstrap h on set: {}".format(metrics['bootstrap_std_snips_test']))
+            print('Logging policy baseline risk: {:2f}'.format(dataset.get_baseline_risk('test')))
             print("Emp. Mean diagnostic on val set: {}".format(metrics['em_diagnostic_test']))
             print("ESS diagnostic on val set: {}".format(metrics['ess_diagnostic_test']))
 
@@ -309,5 +342,4 @@ class CRMEstimator:
             random_seed (int)
 
         """
-        self.distribution.update_parameter(self.parameter, features, reinitialize=True)
         return self.distribution.get_samples(self.parameter, features, random_seed)

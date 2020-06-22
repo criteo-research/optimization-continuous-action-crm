@@ -1,6 +1,6 @@
 numpy
 autograd
-cyanure-mkl
+cyanure-mkl==0.21.post2
 scikit-learn
 pandas
 scipy

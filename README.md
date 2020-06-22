@@ -1,4 +1,4 @@
-# Optimization of Continuous Action Policies with Counterfactual Risk Minimization
+# Counterfactual Learning of Continuous Stochastic Policies
 
 This code reproduces the experiments of the paper [Optimization Approaches for counter-factual risk minimization with continuous actions](https://arxiv.org/abs/2004.11722). Please cite it using the following Bibtex snippet:
 
@@ -63,13 +63,13 @@ python main.py --estimator ips --dataset open --proximal --kappa 0.001 --clip so
 To check that you have the same setup as us, run the following examples and verify results on synthetic dataset:
 
 ```
-$ python main.py --estimator selfnormalized --dataset noisycircles --var_lambda 1 --reg_entropy 0.0001 --contextual_modelling kern-poly2 --nb_rd 1 --proximal --kappa 0.1 --max_iter 10|grep 'test reward'
-test reward 0.616224 policy std 0.000043 context std 0.000000
+$ python main.py --estimator snips --dataset noisycircles --var_lambda 1 --reg_entropy 0.0001 --contextual_modelling kern-poly2 --nb_rd 1 --proximal --kappa 0.1 --max_iter 10|grep 'test reward'
+test reward 0.616125 policy std 0.000043 context std 0.000000
 ```
 
 ```
-$ python main.py --estimator selfnormalized --dataset noisycircles --var_lambda 1 --reg_entropy 0.0001 --contextual_modelling kern-poly2 --nb_rd 1|grep 'test reward'
-test reward 0.613755 policy std 0.000044 context std 0.000000
+$ python main.py --estimator snips --dataset noisycircles --var_lambda 1 --reg_entropy 0.0001 --contextual_modelling kern-poly2 --nb_rd 1|grep 'test reward'
+test reward 0.614141 policy std 0.000059 context std 0.000001
 ```
 
 #### Criteo dataset
@@ -80,7 +80,7 @@ To check that you have the same setup as us, run the following paired example an
 $ python main.py --estimator ips --dataset criteo-small --var_lambda 0.001 --reg_entropy 0.00 --clip soft --M 10 --contextual_modelling strat --nb_rd 1
 ```
 
-Note: this will take some time. 
+Note: this will take some time.
 
 You should see now in the result file:
 ```

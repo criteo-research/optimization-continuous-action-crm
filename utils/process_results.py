@@ -21,7 +21,6 @@ def create_df(fname, regex_pattern, columns):
     rgx = re.compile(regex_pattern, flags=re.M)
     with open(fname, 'r') as f:
         lines = rgx.findall(f.read())
-
         df = pd.DataFrame(lines, columns=columns)
 
         columns_str = ['M', 'dataset', 'estimator', 'clip', 'learn_parameter', 'contextual_modelling', 'learning_distribution', 'method', 'proximal', 'tau', 'kernel', 'logging_policy', 'feature_map_kernel', 'initialize_causal_dm']

@@ -9,7 +9,7 @@ sys.path.append(base_dir)
 from src.estimator.base import CRMEstimator
 
 class InversePropensityScore(CRMEstimator):
-    """ Inverse Propensity Score Estimator in Equation (4)
+    """ Inverse Propensity Score Estimator
     
     """
     def __init__(self, **kw):
@@ -23,7 +23,7 @@ class InversePropensityScore(CRMEstimator):
         self.name = 'IPS'
 
     def risk(self, parameter, features, actions, rewards, pi_logging, training=False):
-        """ See docstring in the parent class, see Equation (4)
+        """ See docstring in the parent class
         """
         u_i = - rewards * self._clip_or_not(self.impt_smplg_weight, is_training=training)
         return np.mean(u_i)
@@ -48,11 +48,11 @@ class InversePropensityScore(CRMEstimator):
             self.hyperparams['M'] = float(self.hyperparams['M'])
 
     def _clip_or_not(self, value, is_training=False):
-        """ According to hyperparameters, performs clipping or not, see Equation (5), (10)
+        """ According to hyperparameters, performs clipping or not
 
         Args:
             value (np.array): value to be clipped
-            is_training (bool): perform clipping or not during for testing
+            is_training (bool): perform clipping or not during for testing [training?]
 
         """
         self._update_clipping_parameter(value)
@@ -63,6 +63,7 @@ class InversePropensityScore(CRMEstimator):
             b = a + self.hyperparams['M']
             F = b * np.log(value + a)
             condition = value <= self.hyperparams['M']
-            return np.where(condition, value, F)
+            result=np.where(condition, value, F)
+            return result
         else:
             return value
